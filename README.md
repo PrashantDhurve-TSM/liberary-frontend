@@ -1,4 +1,4 @@
-# Library Frontend
+# Libraryhub Frontend
 
 ![Member dashboard screenshot](./public/docs/userpannel.png)
 ![Admin dashboard screenshot](./public/docs/adminpannel.png)
