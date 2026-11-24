@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import api from "../services/libraryApi.js";
+import authApi from "../services/authApi.js";
 import { clearSession, selectAuthUser } from "../store/Slice/userSlice..js";
 import Icon from "../components/Icon.jsx";
 import ShaderBackground from "../components/Shaderbackground.jsx";
@@ -24,7 +24,7 @@ const UserLayout = () => {
 
   const logout = async () => {
     try {
-      await api.post("/auth/logout");
+      await authApi.logout();
     } catch (error) {
       console.error("Logout request failed.", error);
     } finally {

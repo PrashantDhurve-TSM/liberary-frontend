@@ -1,23 +1,33 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
-const refreshClient = axios.create({
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+const AUTH_TOKEN_KEY = "token";
+const REFRESH_TOKEN_KEY = "refreshToken";
+const USER_KEY = "user";
+
+const jsonConfig = {
   baseURL: API_BASE_URL,
   headers: { "Content-Type": "application/json" },
   withCredentials: true,
+};
+
+const refreshClient = axios.create({
+  ...jsonConfig,
 });
+
 let refreshPromise;
 
 const clearStoredSession = () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("refreshToken");
-  localStorage.removeItem("user");
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
   window.dispatchEvent(new Event("auth:logout"));
 };
 
 export const refreshAccessToken = () => {
   if (!refreshPromise) {
-    const refreshToken = localStorage.getItem("refreshToken");
+    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
     if (!refreshToken) {
       const error = new Error("No refresh token is available. Please sign in again.");
       clearStoredSession();
@@ -42,9 +52,9 @@ export const refreshAccessToken = () => {
           user: authData.user,
           accessToken: authData.accessToken,
         };
-        localStorage.setItem("token", session.accessToken);
-        localStorage.setItem("refreshToken", authData.refreshToken);
-        localStorage.setItem("user", JSON.stringify(session.user));
+        localStorage.setItem(AUTH_TOKEN_KEY, session.accessToken);
+        localStorage.setItem(REFRESH_TOKEN_KEY, authData.refreshToken);
+        localStorage.setItem(USER_KEY, JSON.stringify(session.user));
         window.dispatchEvent(
           new CustomEvent("auth:token-refreshed", { detail: session }),
         );
@@ -62,17 +72,14 @@ export const refreshAccessToken = () => {
 };
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-  withCredentials: true,
+  ...jsonConfig,
 });
 
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
     if (token) {
+      config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -84,18 +91,20 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const requestUrl = originalRequest?.url || "";
     const canRefresh =
       error.response?.status === 401 &&
       originalRequest &&
       !originalRequest._retry &&
-      localStorage.getItem("refreshToken") &&
-      !originalRequest.url?.includes("/auth/");
+      localStorage.getItem(REFRESH_TOKEN_KEY) &&
+      !requestUrl.includes("/auth/");
 
     if (canRefresh) {
       originalRequest._retry = true;
 
       try {
         const session = await refreshAccessToken();
+        originalRequest.headers = originalRequest.headers || {};
         originalRequest.headers.Authorization = `Bearer ${session.accessToken}`;
         return api(originalRequest);
       } catch {

@@ -1,10 +1,7 @@
 # Library Frontend
 
-![Member dashboard screenshot](./docs/screenshots/member-dashboard.png)
-![Admin dashboard screenshot](./docs/screenshots/admin-dashboard.png)
-
-> Screenshot locations: `docs/screenshots/member-dashboard.png` and `docs/screenshots/admin-dashboard.png`.
-> These assets are not included in the repository yet; add the two screenshots at these paths to display them above.
+![Member dashboard screenshot](./public/docs/userpannel.png)
+![Admin dashboard screenshot](./public/docs/adminpannel.png)
 
 A responsive library-management frontend built with React and Vite. It provides separate experiences for library members and staff, with catalog browsing, loans, reservations, fines, circulation, member management, reporting, and administration settings.
 

@@ -13,7 +13,7 @@ import {
   useToast,
 } from "../../components/Ui";
 import { getApiErrorMessage, unwrapApiResponse } from "../../services/apiHelpers.js";
-import api from "../../services/libraryApi.js";
+import circulationApi from "../../services/circulationApi.js";
 
 const dateLabel = (value) => {
   if (!value) return "—";
@@ -54,13 +54,11 @@ function useDebouncedLookup(query, endpoint, copyStatus, enabled, show) {
     const timeoutId = window.setTimeout(async () => {
       setResult({ query: search, items: [], loading: true });
       try {
-        const { data } = await api.get(endpoint, {
-          params: {
-            q: search,
-            ...(copyStatus ? { copyStatus } : {}),
-          },
-          signal: controller.signal,
-        });
+        const { data } = await circulationApi.lookup(
+          endpoint,
+          { q: search, ...(copyStatus ? { copyStatus } : {}) },
+          { signal: controller.signal },
+        );
         const searchResults = unwrapApiResponse(data);
         if (!Array.isArray(searchResults)) {
           throw new Error("The server returned invalid search results.");
@@ -132,10 +130,10 @@ export default function IssueReturn() {
   );
 
   const refreshPendingLoans = useCallback(async (signal) => {
-    const { data } = await api.get("/admin/loans", {
-      params: { status: "pending", page: 1, limit: 100 },
-      signal,
-    });
+    const { data } = await circulationApi.getPendingLoans(
+      { status: "pending", page: 1, limit: 100 },
+      { signal },
+    );
     const result = unwrapApiResponse(data);
     if (!Array.isArray(result?.data)) {
       throw new Error("The server returned invalid pending-loan data.");
@@ -169,9 +167,7 @@ export default function IssueReturn() {
     setMemberSearch(`${suggestion.name} · ${suggestion.memberId}`);
     setLookingUp("member");
     try {
-      const { data } = await api.get("/admin/lookup/member", {
-        params: { q: suggestion.memberId },
-      });
+      const { data } = await circulationApi.lookupMember({ q: suggestion.memberId });
       if (requestVersion === memberLookupVersion.current) {
         setMember(unwrapApiResponse(data));
       }
@@ -220,7 +216,7 @@ export default function IssueReturn() {
 
     setSaving("issue");
     try {
-      const { data } = await api.post("/admin/loans/issue", {
+      const { data } = await circulationApi.issueLoan({
         memberId: member.memberId,
         barcode: copy.barcode,
         ...(dueAt ? { dueAt: new Date(`${dueAt}T23:59:59`).toISOString() } : {}),
@@ -254,7 +250,7 @@ export default function IssueReturn() {
   const approvePendingLoan = async (loan) => {
     setSaving(loan._id);
     try {
-      await api.post("/admin/loans/issue", {
+      await circulationApi.issueLoan({
         memberId: loan.snapshot.memberId,
         barcode: loan.snapshot.barcode,
       });
@@ -287,7 +283,7 @@ export default function IssueReturn() {
 
     setSaving("return");
     try {
-      const { data } = await api.post("/admin/loans/return", {
+      const { data } = await circulationApi.returnLoan({
         barcode: returnCopy.barcode,
         condition,
       });

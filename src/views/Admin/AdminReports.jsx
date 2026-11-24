@@ -2,17 +2,8 @@ import { useEffect, useState } from "react";
 import Icon from "../../components/Icon";
 import { Badge, Btn, Card, Empty, PageHeader, StatCard, Tabs, Table, td, useToast } from "../../components/Ui";
 import BarChart from "../../components/Barchart";
-import api from "../../services/libraryApi.js";
-
-const errorMessage = (error) => {
-  const message = error.response?.data?.message;
-  if (typeof message === "string") return message;
-  if (Array.isArray(message)) return message.join(", ");
-  return error.message || "The report could not be loaded.";
-};
-
-const unwrap = (response) =>
-  response?.success === true ? response.data : response;
+import { getApiErrorMessage, unwrapApiResponse } from "../../services/apiHelpers.js";
+import reportApi from "../../services/reportApi.js";
 
 const money = (paise) =>
   new Intl.NumberFormat("en-IN", {
@@ -34,23 +25,24 @@ export default function AdminReports() {
     const end = new Date();
     const start = new Date(end.getTime() - (range === "week" ? 7 : 30) * 86_400_000);
     Promise.all([
-      api.get("/admin/reports/circulation", { params: { range }, signal: controller.signal }),
-      api.get("/admin/reports/most-borrowed", { params: { limit: 10 }, signal: controller.signal }),
-      api.get("/admin/reports/categories", { signal: controller.signal }),
-      api.get("/admin/reports/fines", {
-        params: { from: start.toISOString(), to: end.toISOString() },
-        signal: controller.signal,
-      }),
-      api.get("/admin/reports/overdue", { signal: controller.signal }),
-      api.get("/admin/reports/members", { signal: controller.signal }),
+      reportApi.getReport("circulation", { range }, { signal: controller.signal }),
+      reportApi.getReport("most-borrowed", { limit: 10 }, { signal: controller.signal }),
+      reportApi.getReport("categories", {}, { signal: controller.signal }),
+      reportApi.getReport(
+        "fines",
+        { from: start.toISOString(), to: end.toISOString() },
+        { signal: controller.signal },
+      ),
+      reportApi.getReport("overdue", {}, { signal: controller.signal }),
+      reportApi.getReport("members", {}, { signal: controller.signal }),
     ])
       .then(([circulationResponse, booksResponse, categoriesResponse, finesResponse, overdueResponse, membersResponse]) => {
-        const circulation = unwrap(circulationResponse.data);
-        const mostBorrowed = unwrap(booksResponse.data);
-        const categories = unwrap(categoriesResponse.data);
-        const fines = unwrap(finesResponse.data);
-        const overdue = unwrap(overdueResponse.data);
-        const members = unwrap(membersResponse.data);
+        const circulation = unwrapApiResponse(circulationResponse.data);
+        const mostBorrowed = unwrapApiResponse(booksResponse.data);
+        const categories = unwrapApiResponse(categoriesResponse.data);
+        const fines = unwrapApiResponse(finesResponse.data);
+        const overdue = unwrapApiResponse(overdueResponse.data);
+        const members = unwrapApiResponse(membersResponse.data);
         if (
           !Array.isArray(circulation?.data) ||
           !Array.isArray(mostBorrowed) ||
@@ -65,7 +57,7 @@ export default function AdminReports() {
       })
       .catch((requestError) => {
         if (requestError.code !== "ERR_CANCELED") {
-          show(errorMessage(requestError));
+          show(getApiErrorMessage(requestError, "The report could not be loaded."));
         }
       })
       .finally(() => {
@@ -92,9 +84,10 @@ export default function AdminReports() {
   const exportCsv = async () => {
     setExporting(true);
     try {
-      const { data: file } = await api.get("/admin/reports/export", {
-        params: { type: "circulation", format: "csv", range },
-        responseType: "blob",
+      const { data: file } = await reportApi.exportReport({
+        type: "circulation",
+        format: "csv",
+        range,
       });
       const url = URL.createObjectURL(file);
       const link = Object.assign(document.createElement("a"), {
@@ -105,7 +98,7 @@ export default function AdminReports() {
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       show("Report exported");
     } catch (requestError) {
-      show(errorMessage(requestError));
+      show(getApiErrorMessage(requestError, "The report could not be exported."));
     } finally {
       setExporting(false);
     }

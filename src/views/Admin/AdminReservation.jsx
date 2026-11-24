@@ -11,7 +11,7 @@ import {
   useToast,
 } from "../../components/Ui";
 import { getApiErrorMessage, unwrapApiResponse } from "../../services/apiHelpers.js";
-import api from "../../services/libraryApi.js";
+import adminApi from "../../services/adminApi.js";
 
 const dateLabel = (value) => {
   if (!value) return "—";
@@ -35,7 +35,7 @@ export default function AdminReservations() {
   const [toast, show] = useToast();
 
   const refreshReservations = useCallback(async (signal) => {
-    const { data } = await api.get("/admin/reservations", { signal });
+    const { data } = await adminApi.getReservations({ signal });
     const result = unwrapApiResponse(data);
     if (!Array.isArray(result)) {
       throw new Error("The server returned invalid reservation data.");
@@ -62,7 +62,7 @@ export default function AdminReservations() {
   const notify = async (reservation) => {
     setBusyId(reservation._id);
     try {
-      await api.post(`/admin/reservations/${reservation._id}/notify`);
+      await adminApi.notifyReservation(reservation._id);
       await refreshReservations();
       show(`${reservation.snapshot?.memberName ?? "Member"} notified.`);
     } catch (requestError) {
@@ -75,7 +75,7 @@ export default function AdminReservations() {
   const cancel = async (reservation) => {
     setBusyId(reservation._id);
     try {
-      await api.delete(`/admin/reservations/${reservation._id}`);
+      await adminApi.cancelReservation(reservation._id);
       await refreshReservations();
       show("Reservation cancelled.");
     } catch (requestError) {

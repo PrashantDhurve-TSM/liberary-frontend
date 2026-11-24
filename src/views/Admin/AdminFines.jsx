@@ -16,7 +16,7 @@ import {
   useToast,
 } from "../../components/Ui";
 import { getApiErrorMessage, unwrapApiResponse } from "../../services/apiHelpers.js";
-import api from "../../services/libraryApi.js";
+import paymentApi from "../../services/paymentApi.js";
 import { selectAuthUser } from "../../store/Slice/userSlice..js";
 
 const formatMoney = (paise) =>
@@ -54,9 +54,9 @@ export default function AdminFines() {
   const isAdmin = user?.role === "admin";
 
   const refreshFines = useCallback(async (nextPage = 1) => {
-    const { data } = await api.get("/admin/fines", {
-      params: { status: "all", page: nextPage, limit: 100 },
-    });
+    const { data } = await paymentApi.getAdminFines(
+      { status: "all", page: nextPage, limit: 100 },
+    );
     const result = unwrapApiResponse(data);
     if (!Array.isArray(result?.data) || !result?.totals || !result?.meta) {
       throw new Error("The server returned invalid fine data.");
@@ -100,7 +100,7 @@ export default function AdminFines() {
   const collectCash = (fine) =>
     mutateFine(
       fine,
-      () => api.post(`/admin/fines/${fine._id}/pay`, { method: "cash" }),
+      () => paymentApi.payAdminFine(fine._id, { method: "cash" }),
       `Cash payment of ${formatMoney(fine.amount - (fine.paidAmount || 0))} recorded.`,
     );
 
@@ -111,7 +111,7 @@ export default function AdminFines() {
     }
     const updated = await mutateFine(
       waiving,
-      () => api.post(`/admin/fines/${waiving._id}/waive`, { reason: reason.trim() }),
+      () => paymentApi.waiveFine(waiving._id, { reason: reason.trim() }),
       "Fine waived.",
     );
     if (!updated) return;
@@ -136,7 +136,7 @@ export default function AdminFines() {
     }
     setCreating(true);
     try {
-      await api.post("/admin/fines", {
+      await paymentApi.createFine({
         memberId: manualFine.memberId.trim(),
         amount: amountPaise,
         reason: manualFine.reason,

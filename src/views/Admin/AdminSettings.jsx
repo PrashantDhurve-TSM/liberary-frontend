@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { glass, useToast } from "../../components/Ui.jsx";
 import { getApiErrorMessage, unwrapApiResponse } from "../../services/apiHelpers.js";
-import api from "../../services/libraryApi.js";
+import adminApi from "../../services/adminApi.js";
 import { selectAuthUser } from "../../store/Slice/userSlice..js";
 
 const initialForm = {
@@ -32,9 +32,7 @@ const toPolicyForm = (settings) => ({
 });
 
 const fetchAuditLogs = async () => {
-  const { data } = await api.get("/admin/audit-logs", {
-    params: { page: 1, limit: 20 },
-  });
+  const { data } = await adminApi.getAuditLogs({ page: 1, limit: 20 });
   const result = unwrapApiResponse(data);
   if (!Array.isArray(result?.data)) {
     throw new Error("The server returned invalid audit log data.");
@@ -60,8 +58,8 @@ export default function AdminSettings() {
 
   useEffect(() => {
     let active = true;
-    api
-      .get("/admin/settings")
+    adminApi
+      .getSettings()
       .then(({ data }) => {
         const settings = unwrapApiResponse(data);
         if (!settings?.loanDays || !settings?.maxActiveLoans) {
@@ -101,8 +99,8 @@ export default function AdminSettings() {
 
   useEffect(() => {
     let active = true;
-    api
-      .get("/user")
+    adminApi
+      .getMembers()
       .then(({ data }) => {
         const result = unwrapApiResponse(data);
         if (!Array.isArray(result)) {
@@ -168,7 +166,7 @@ export default function AdminSettings() {
 
     try {
       setSaving(true);
-      const { data } = await api.post("/user", {
+      const { data } = await adminApi.createUser({
         ...form,
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
@@ -261,7 +259,7 @@ export default function AdminSettings() {
 
     try {
       setPolicySaving(true);
-      const { data } = await api.patch("/admin/settings", changes);
+      const { data } = await adminApi.updateSettings(changes);
       const settings = unwrapApiResponse(data);
       if (!settings?.loanDays || !settings?.maxActiveLoans) {
         throw new Error("The server returned invalid library settings.");

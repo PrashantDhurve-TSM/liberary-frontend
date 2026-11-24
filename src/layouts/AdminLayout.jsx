@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import Icon from "../components/Icon";
-import api from "../services/libraryApi.js";
+import authApi from "../services/authApi.js";
 import { clearSession, selectAuthUser } from "../store/Slice/userSlice..js";
 import { glass } from "../components/Ui.jsx";
 import ShaderBackground from "../components/Shaderbackground.jsx";
@@ -71,7 +71,7 @@ export default function AdminLayout({ children }) {
 
   const logout = async () => {
     try {
-      await api.post("/auth/logout");
+      await authApi.logout();
     } catch (error) {
       console.error("Logout request failed.", error);
     } finally {

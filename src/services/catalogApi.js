@@ -9,10 +9,18 @@ export const catalogApi = {
   createBook: (payload) => api.post("/admin/books", payload),
   updateBook: (id, payload) => api.patch(`/admin/books/${id}`, payload),
   createCategory: (payload) => api.post("/admin/categories", payload),
-  getImportTemplate: () => api.get("/admin/books/import-template", { responseType: "blob" }),
-  importBooks: (formData) => api.post("/admin/books/import", formData, { headers: { "Content-Type": "multipart/form-data" } }),
-  getCategoryImportTemplate: () => api.get("/admin/categories/import-template", { responseType: "blob" }),
-  importCategories: (formData) => api.post("/admin/categories/import", formData, { headers: { "Content-Type": "multipart/form-data" } }),
+  getImportTemplate: () =>
+    api.get("/admin/books/import-template", { responseType: "blob" }),
+  importBooks: (formData) =>
+    api.post("/admin/books/import", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+  getCategoryImportTemplate: () =>
+    api.get("/admin/categories/import-template", { responseType: "blob" }),
+  importCategories: (formData) =>
+    api.post("/admin/categories/import", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
   addCopies: (id, count) => api.post(`/admin/books/${id}/copies`, { count }),
   archiveBook: (id) => api.delete(`/admin/books/${id}`),
 };

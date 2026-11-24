@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import Icon from "../../components/Icon";
 import { Badge, Card, Empty, PageHeader, StatCard, Table, td, btnCls, useToast } from "../../components/Ui";
 import BarChart from "../../components/Barchart";
-import api from "../../services/libraryApi.js";
+import { unwrapApiResponse } from "../../services/apiHelpers.js";
+import adminApi from "../../services/adminApi.js";
 
 const errorMessage = (error) => {
   const message = error.response?.data?.message;
@@ -34,9 +35,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const controller = new AbortController();
-    api.get("/admin/dashboard", { signal: controller.signal })
+    adminApi.getDashboard({ signal: controller.signal })
       .then(({ data: response }) => {
-        const result = response?.success === true ? response.data : response;
+        const result = unwrapApiResponse(response);
         if (!result?.stats || !Array.isArray(result.circulation)) {
           throw new Error("The server returned an invalid dashboard response.");
         }
